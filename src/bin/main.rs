@@ -6,11 +6,18 @@
     holding buffers for the duration of a data transfer."
 )]
 
+use embassy_executor::task;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
+use esp_hal::i2c;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
+use esp_hal::{
+    gpio::{Output, Input, Level},
+    i2c::master::I2c
+};
+use esp_println::println;
 use esp_wifi::ble::controller::BleConnector;
 
 #[panic_handler]
@@ -23,6 +30,18 @@ extern crate alloc;
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
+
+
+#[task]
+async fn task1(mut led:Output<'static>, mut x: i32) {
+    loop {
+        x += 1;
+        println!("Task 1: {}", x);
+        led.toggle();
+        Timer::after(Duration::from_millis(500)).await;
+    }
+}
+
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -46,8 +65,12 @@ async fn main(spawner: Spawner) {
         .expect("Failed to initialize WIFI controller");
     let _connector = BleConnector::new(&wifi_init, peripherals.BT);
 
-    // TODO: Spawn some tasks
-    let _ = spawner;
+
+    // Task 1: Blink an LED
+    let x = 5;
+
+    let led = Output::new(peripherals.GPIO4, Level::Low, esp_hal::gpio::OutputConfig::default());
+    spawner.spawn(task1(led, x)).unwrap();
 
     loop {
         Timer::after(Duration::from_secs(1)).await;

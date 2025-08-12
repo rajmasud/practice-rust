@@ -656,7 +656,7 @@ dependencies = [
  "esp-build",
  "esp-config",
  "esp-hal-procmacros",
- "esp-metadata",
+ "esp-metadata 0.7.0",
  "esp-riscv-rt",
  "esp-synopsys-usb-otg",
  "esp32s3",
@@ -693,7 +693,7 @@ dependencies = [
  "esp-config",
  "esp-hal",
  "esp-hal-procmacros",
- "esp-metadata",
+ "esp-metadata 0.7.0",
  "portable-atomic",
  "static_cell",
 ]
@@ -725,6 +725,43 @@ dependencies = [
  "basic-toml",
  "serde",
  "strum",
+]
+
+[[package]]
+name = "esp-metadata"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6fbc1d166be84c0750f121e95c8989ddebd7e7bdd86af3594a6cfb34f039650"
+dependencies = [
+ "anyhow",
+ "basic-toml",
+ "indexmap",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "strum",
+]
+
+[[package]]
+name = "esp-metadata-generated"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "189d36b8c8a752bdebec67fd02a15ebb1432feea345553749bca7ce2393cc795"
+dependencies = [
+ "esp-metadata 0.8.0",
+]
+
+[[package]]
+name = "esp-println"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e7e3ab41e96093d7fd307e93bfc88bd646a8ff23036ebf809e116b18869f719"
+dependencies = [
+ "critical-section",
+ "document-features",
+ "esp-metadata-generated",
+ "log",
+ "portable-atomic",
 ]
 
 [[package]]
@@ -770,7 +807,7 @@ dependencies = [
  "esp-build",
  "esp-config",
  "esp-hal",
- "esp-metadata",
+ "esp-metadata 0.7.0",
  "esp-wifi-sys",
  "num-derive",
  "num-traits",
@@ -971,6 +1008,7 @@ checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown",
+ "serde",
 ]
 
 [[package]]
@@ -1292,6 +1330,7 @@ dependencies = [
  "esp-bootloader-esp-idf",
  "esp-hal",
  "esp-hal-embassy",
+ "esp-println",
  "esp-wifi",
  "smoltcp",
  "static_cell",
