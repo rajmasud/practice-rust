@@ -9,6 +9,8 @@
 use embassy_executor::task;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
+use embassy_sync::mutex::Mutex;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use esp_hal::clock::CpuClock;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
@@ -19,6 +21,7 @@ use esp_hal::{
 };
 use esp_println::println;
 use esp_wifi::ble::controller::BleConnector;
+use static_cell::StaticCell;
 
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
@@ -31,6 +34,8 @@ extern crate alloc;
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
+type I2cShared = Mutex<NoopRawMutex, Option<I2c<'static, Async>>>;
+static I2C1_SHARED: StaticCell<I2cShared> = StaticCell::new();
 
 #[task]
 async fn task_EEPROM(mut i2c1: I2c<'static, Async>) {
@@ -45,18 +50,18 @@ async fn task_EEPROM(mut i2c1: I2c<'static, Async>) {
     }
 }
 
-#[task]
-async fn task_HTSensor(mut i2c1: I2c<'static, Async>) {
-    loop {
-        println!("I2C Task");
-        let address: u8 = 0x5C;
-        let write_buffer:[u8; 1] = [0x0F];
-        let mut read_buffer: [u8; 1] = [0x00];
-        i2c1.write_read(address, &write_buffer, &mut read_buffer);
-        println!("{:?}", read_buffer);
-        Timer::after(Duration::from_millis(500)).await;
-    }
-}
+// #[task]
+// async fn task_HTSensor(mut i2c1: I2c<'static, Async>) {
+//     loop {
+//         println!("I2C Task");
+//         let address: u8 = 0x5C;
+//         let write_buffer:[u8; 1] = [0x0F];
+//         let mut read_buffer: [u8; 1] = [0x00];
+//         i2c1.write_read(address, &write_buffer, &mut read_buffer);
+//         println!("{:?}", read_buffer);
+//         Timer::after(Duration::from_millis(500)).await;
+//     }
+// }
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -88,6 +93,8 @@ async fn main(spawner: Spawner) {
         .with_scl(peripherals.GPIO5)
         .with_sda(peripherals.GPIO4)
         .into_async();
+
+    let i2c1_shared = I2C1_SHARED.init(Mutex::new(i2c1.into_blocking().into_async()));
 
     spawner.spawn(task_EEPROM(i2c1)).unwrap();
     // spawner.spawn(task_HTSensor(i2c1)).unwrap();

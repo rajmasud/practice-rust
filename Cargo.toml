@@ -25,7 +25,7 @@ bleps = { git = "https://github.com/bjoernQ/bleps", package = "bleps", rev = "a5
   "async",
   "macros",
 ] }
-critical-section = "1.2.0"
+embassy-sync = "0.7.0"
 embassy-executor = { version = "0.7.0", features = ["task-arena-size-20480"] }
 embassy-time = "0.4.0"
 esp-hal-embassy = { version = "0.8.1", features = ["esp32s3"] }

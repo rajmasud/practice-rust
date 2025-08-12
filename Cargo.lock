@@ -1320,9 +1320,9 @@ name = "repository"
 version = "0.1.0"
 dependencies = [
  "bleps",
- "critical-section",
  "embassy-executor",
  "embassy-net",
+ "embassy-sync 0.7.0",
  "embassy-time",
  "embedded-io",
  "embedded-io-async",
