@@ -10,12 +10,10 @@ use embassy_executor::task;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
-use esp_hal::i2c;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{
-    gpio::{Output, Input, Level},
-    i2c::master::I2c
+    gpio::{Output, Level},
 };
 use esp_println::println;
 use esp_wifi::ble::controller::BleConnector;
@@ -33,10 +31,9 @@ esp_bootloader_esp_idf::esp_app_desc!();
 
 
 #[task]
-async fn task1(mut led:Output<'static>, mut x: i32) {
+async fn task1(mut led:Output<'static>) {
     loop {
-        x += 1;
-        println!("Task 1: {}", x);
+        println!("LED Task");
         led.toggle();
         Timer::after(Duration::from_millis(500)).await;
     }
@@ -67,10 +64,8 @@ async fn main(spawner: Spawner) {
 
 
     // Task 1: Blink an LED
-    let x = 5;
-
     let led = Output::new(peripherals.GPIO4, Level::Low, esp_hal::gpio::OutputConfig::default());
-    spawner.spawn(task1(led, x)).unwrap();
+    spawner.spawn(task1(led)).unwrap();
 
     loop {
         Timer::after(Duration::from_secs(1)).await;
