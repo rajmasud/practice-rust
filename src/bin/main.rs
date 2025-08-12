@@ -30,38 +30,48 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 
 extern crate alloc;
 
-// This creates a default app-descriptor required by the esp-idf bootloader.
-// For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
 type I2cShared = Mutex<NoopRawMutex, Option<I2c<'static, Async>>>;
 static I2C1_SHARED: StaticCell<I2cShared> = StaticCell::new();
 
+
 #[task]
-async fn task_EEPROM(mut i2c1: I2c<'static, Async>) {
+//async fn task_EEPROM(mut i2c1: I2c<'static, Async>) {
+async fn task_EEPROM(i2c1: &'static I2cShared) {
     loop {
-        println!("I2C Task");
+        println!("EEPROM Task");
         let address: u8 = 0x58;
         let write_buffer:[u8; 1] = [0x00];
         let mut read_buffer: [u8; 1] = [0x00];
-        i2c1.write_read(address, &write_buffer, &mut read_buffer);
+        {
+            let mut i2c1_mutex = i2c1.lock().await;
+            i2c1_mutex.as_mut().unwrap().write_read_async(address, &write_buffer, &mut read_buffer).await;
+        }
+        
+        println!("{:?}", read_buffer);
+        Timer::after(Duration::from_millis(250)).await;
+    }
+}
+
+#[task]
+//async fn task_EEPROM(mut i2c1: I2c<'static, Async>) {
+async fn task_HTSensor(i2c1: &'static I2cShared) {
+    loop {
+        println!("HT Task");
+        let address: u8 = 0x5C;
+        let write_buffer:[u8; 1] = [0x0F];
+        let mut read_buffer: [u8; 1] = [0x00];
+        {
+            let mut i2c1_mutex = i2c1.lock().await;
+            i2c1_mutex.as_mut().unwrap().write_read_async(address, &write_buffer, &mut read_buffer).await;
+        }
+        
         println!("{:?}", read_buffer);
         Timer::after(Duration::from_millis(500)).await;
     }
 }
 
-// #[task]
-// async fn task_HTSensor(mut i2c1: I2c<'static, Async>) {
-//     loop {
-//         println!("I2C Task");
-//         let address: u8 = 0x5C;
-//         let write_buffer:[u8; 1] = [0x0F];
-//         let mut read_buffer: [u8; 1] = [0x00];
-//         i2c1.write_read(address, &write_buffer, &mut read_buffer);
-//         println!("{:?}", read_buffer);
-//         Timer::after(Duration::from_millis(500)).await;
-//     }
-// }
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -87,16 +97,16 @@ async fn main(spawner: Spawner) {
 
 
     // Task 1: I2C Task
-
     let i2c1 = I2c::new(peripherals.I2C1, i2c::master::Config::default())
         .unwrap()
         .with_scl(peripherals.GPIO5)
         .with_sda(peripherals.GPIO4)
         .into_async();
 
-    let i2c1_shared = I2C1_SHARED.init(Mutex::new(i2c1.into_blocking().into_async()));
+    let i2c1_shared = I2C1_SHARED.init(Mutex::new(Some(i2c1)));
 
-    spawner.spawn(task_EEPROM(i2c1)).unwrap();
+    spawner.spawn(task_HTSensor(i2c1_shared)).unwrap();
+    spawner.spawn(task_EEPROM(i2c1_shared)).unwrap();
     // spawner.spawn(task_HTSensor(i2c1)).unwrap();
 
     loop {
