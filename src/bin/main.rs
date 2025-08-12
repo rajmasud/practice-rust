@@ -10,11 +10,11 @@ use embassy_executor::task;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::clock::CpuClock;
-use esp_hal::i2c;
 use esp_hal::timer::systimer::SystemTimer;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{
-    gpio::{Output, Input, Level},
+    i2c,
+    Async,
     i2c::master::I2c
 };
 use esp_println::println;
@@ -33,15 +33,30 @@ esp_bootloader_esp_idf::esp_app_desc!();
 
 
 #[task]
-async fn task1(mut led:Output<'static>, mut x: i32) {
+async fn task_EEPROM(mut i2c1: I2c<'static, Async>) {
     loop {
-        x += 1;
-        println!("Task 1: {}", x);
-        led.toggle();
+        println!("I2C Task");
+        let address: u8 = 0x58;
+        let write_buffer:[u8; 1] = [0x00];
+        let mut read_buffer: [u8; 1] = [0x00];
+        i2c1.write_read(address, &write_buffer, &mut read_buffer);
+        println!("{:?}", read_buffer);
         Timer::after(Duration::from_millis(500)).await;
     }
 }
 
+#[task]
+async fn task_HTSensor(mut i2c1: I2c<'static, Async>) {
+    loop {
+        println!("I2C Task");
+        let address: u8 = 0x5C;
+        let write_buffer:[u8; 1] = [0x0F];
+        let mut read_buffer: [u8; 1] = [0x00];
+        i2c1.write_read(address, &write_buffer, &mut read_buffer);
+        println!("{:?}", read_buffer);
+        Timer::after(Duration::from_millis(500)).await;
+    }
+}
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -66,11 +81,16 @@ async fn main(spawner: Spawner) {
     let _connector = BleConnector::new(&wifi_init, peripherals.BT);
 
 
-    // Task 1: Blink an LED
-    let x = 5;
+    // Task 1: I2C Task
 
-    let led = Output::new(peripherals.GPIO4, Level::Low, esp_hal::gpio::OutputConfig::default());
-    spawner.spawn(task1(led, x)).unwrap();
+    let i2c1 = I2c::new(peripherals.I2C1, i2c::master::Config::default())
+        .unwrap()
+        .with_scl(peripherals.GPIO5)
+        .with_sda(peripherals.GPIO4)
+        .into_async();
+
+    spawner.spawn(task_EEPROM(i2c1)).unwrap();
+    // spawner.spawn(task_HTSensor(i2c1)).unwrap();
 
     loop {
         Timer::after(Duration::from_secs(1)).await;
