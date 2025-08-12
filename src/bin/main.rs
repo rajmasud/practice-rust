@@ -20,8 +20,6 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 
 extern crate alloc;
 
-// This creates a default app-descriptor required by the esp-idf bootloader.
-// For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
 #[esp_hal_embassy::main]
@@ -40,10 +38,16 @@ async fn main(spawner: Spawner) {
 
     let rng = esp_hal::rng::Rng::new(peripherals.RNG);
     let timer1 = TimerGroup::new(peripherals.TIMG0);
-    let wifi_init = esp_wifi::init(timer1.timer0, rng, peripherals.RADIO_CLK)
-        .expect("Failed to initialize WIFI/BLE controller");
-    let (mut _wifi_controller, _interfaces) = esp_wifi::wifi::new(&wifi_init, peripherals.WIFI)
-        .expect("Failed to initialize WIFI controller");
+    let wifi_init = esp_wifi::init(
+        timer1.timer0, 
+        rng, 
+        peripherals.RADIO_CLK
+    ).expect("Failed to initialize WIFI/BLE controller");
+
+    let (mut _wifi_controller, _interfaces) = esp_wifi::wifi::new(
+        &wifi_init, peripherals.WIFI
+    ).expect("Failed to initialize WIFI controller");
+    
     let _connector = BleConnector::new(&wifi_init, peripherals.BT);
 
     // TODO: Spawn some tasks
@@ -53,5 +57,5 @@ async fn main(spawner: Spawner) {
         Timer::after(Duration::from_secs(1)).await;
     }
 
-    // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-beta.1/examples/src/bin
+    
 }
